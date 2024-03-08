@@ -2,8 +2,6 @@
 #include <Wire.h>
 #include <DS3231.h>
 
-#DEFINE INITIALIZE_TIME;
-
 // PINS************
 const int D1 = 10;
 const int D2 = 11;
@@ -17,7 +15,7 @@ const int MODE = 3;
 const int DATA = 2;
 const int LATCH = 4;
 const int CLOCK = 5;
-// const int ALARM = A0;
+const int ALARMPIN = A0;
 // PINS OVER*******
 
 // OBJECTS*********
@@ -57,6 +55,8 @@ int last;
 Modes mode;
 int alarmHour;
 int alarmMinute;
+typedef void (*timeFunction)(int,int);
+timeFunction currentCallback;
 // VARIABLES OVER**
 
 /*
@@ -101,11 +101,14 @@ void displayFullTime(int hour, int minute) {
   if so update accordingly.
 */
 void checkMode() {
-  if(!ctiveMode && digitalRead(MODE) == HIGH) {
-    mode = ++mode % Modes.NUM_MODES;
+  if(!activeMode && digitalRead(MODE) == LOW) {
+    Serial.println("mode changed");
+    Serial.println(mode);
+    mode = (Modes)(((int)mode + 1) % (int)NUM_MODES);
     activeMode = true;
+    Serial.println(mode);
   }
-  else if(activeMode && digitalRead(MODE) == LOW) {
+  else if(activeMode && digitalRead(MODE) == HIGH) {
     activeMode = false;
   }
 }
@@ -125,20 +128,20 @@ void setAlarm(int hour, int minute) {
   alarmMinute = minute;
 }
 
-void setTime(int hour, int minute, void* timeChangeFunction) {
-  if(!activeHour && digitalRead(HOUR) == HIGH) {
-    timeChangeFunction((hour + 1) % 24, minute);
+void setTime(int hour, int minute) {
+  if(!activeHour && digitalRead(HOUR) == LOW) {
+    currentCallback((hour + 1) % 24, minute);
     activeHour = true;
   }
-  else if(activeHour && digitalRead(HOUR) == LOW) {
+  else if(activeHour && digitalRead(HOUR) == HIGH) {
     activeHour = false;
   }
 
-  if(!activeMinute && digitalRead(MIN) == HIGH) {
-    timeChangeFunction(hour, (minute + 1) % 60);
+  if(!activeMinute && digitalRead(MIN) == LOW) {
+    currentCallback(hour, (minute + 1) % 60);
     activeMinute = true;
   }
-  else if(activeMinute && digitalRead(MIN) == LOW) {
+  else if(activeMinute && digitalRead(MIN) == HIGH) {
     activeMinute = false;
   }
 }
@@ -153,9 +156,8 @@ void setup() {
   Serial.begin(9600);
   clock.begin();
 
-  #IFDEF INITIALIZE_TIME
-    clock.setDateTime(__DATE__, __TIME__);
-  #ENDIF
+  // clock.setDateTime(__DATE__, __TIME__);
+
 
   pinMode(D1, OUTPUT);
   pinMode(D2, OUTPUT);
@@ -167,7 +169,7 @@ void setup() {
   pinMode(MIN, INPUT_PULLUP);
   pinMode(HOUR, INPUT_PULLUP);
   pinMode(MODE, INPUT_PULLUP);
-  // pinMode(ALARM, OUTPUT);
+  pinMode(ALARM, OUTPUT);
 
   digitalWrite(D1, LOW);
   digitalWrite(D2, LOW);
@@ -179,7 +181,7 @@ void setup() {
   activeHour = false;
   activeMinute = false;
   last = 0;
-  mode = Modes.TIME;
+  mode = TIME;
   alarmHour = 0;
   alarmMinute = 0;
 }
@@ -194,14 +196,17 @@ void loop() {
   dt = clock.getDateTime();
 
   switch(mode) {
-    case Modes.ALARM:
-      setTime(alarmHour, alarmMinute, setAlarm);
+    case ALARM:
+      currentCallback = setAlarm;
+      setTime(alarmHour, alarmMinute);
       hour = alarmHour;
       minute = alarmMinute;
+      break;
 
-    case Modes.SET:
-      setTime(dt.hour, dt.minute, setClock);
-    case Modes.TIME:
+    case SET:
+      currentCallback = setClock;
+      setTime(dt.hour, dt.minute);
+    case TIME:
     default:
       hour = dt.hour;
       minute = dt.minute;
@@ -211,10 +216,10 @@ void loop() {
 
   displayFullTime(hour, minute);
 
-  // if(dt.hour == h && dt.minute == m) {
-  //   analogWrite(ALARM, 30);
-  // }
-  // else {
-  //   analogWrite(ALARM, 0);
-  // }
+  if(dt.hour == alarmHour && dt.minute == alarmMinute) {
+    analogWrite(ALARMPIN, 255);
+  }
+  else {
+    analogWrite(ALARMPIN, 0);
+  }
 }
