@@ -3,18 +3,16 @@
 #include <DS3231.h>
 
 // PINS************
-const int D1 = 10;
-const int D2 = 11;
-const int D3 = 12;
-const int D4 = 13;
+const int B1 = 12;
+const int B2 = 13;
 
-const int HOUR = 6;
-const int MIN = 7;
-const int MODE = 3;
+const int HOURPIN = 6;
+const int MINPIN = 7;
+const int MODEPIN = 3;
 
-const int DATA = 2;
-const int LATCH = 4;
-const int CLOCK = 5;
+const int DATAPIN = 2;
+const int LATCHPIN = 4;
+const int CLOCKPIN = 5;
 const int ALARMPIN = A0;
 // PINS OVER*******
 
@@ -30,7 +28,6 @@ enum Modes {
   ALARM,
   NUM_MODES
 };
-int digits[4] = {D1, D2, D3, D4};
 int values[4] = {0, 0, 0, 0};
 int numbers[11] = {
   0b11111100, // 0
@@ -51,7 +48,6 @@ int numbers[11] = {
 bool activeHour;
 bool activeMinute;
 bool activeMode;
-int last;
 Modes mode;
 int alarmHour;
 int alarmMinute;
@@ -64,18 +60,31 @@ timeFunction currentCallback;
   and latch.
 */
 void sevenSegDisplay(int num) {
-  digitalWrite(LATCH, LOW);
-  shiftOut(DATA, CLOCK, LSBFIRST, numbers[num]);
-  digitalWrite(LATCH, HIGH);
+  digitalWrite(LATCHPIN, LOW);
+  shiftOut(DATAPIN, CLOCKPIN, LSBFIRST, numbers[num]);
+  digitalWrite(LATCHPIN, HIGH);
 }
 
 /*
   Turn off the previous digit and set up the next digit.
 */
-void updateNumOnDigit(int onPin, int offPin, int num) {
-  digitalWrite(offPin, LOW);
+void updateNumOnDigit(int digit, int num) {
+  digitalWrite(B1, LOW);
+  digitalWrite(B2, LOW);
   sevenSegDisplay(num);
-  digitalWrite(onPin, HIGH);
+  /*
+   0 0 D1
+   0 1 D2
+   1 0 D3
+   1 1 D4
+  */
+  digitalWrite(B1, digit % 2); 
+    // 2 - 1 = 1 = 0b01     0b01 % 2 = 1 (HIGH)
+    // 4 - 1 = 3 = 0b11     0b11 % 2 = 1 (HIGH)
+  digitalWrite(B2, (digit / 2) % 2);
+    // 3 - 1 = 2 = 0b10     0b10 / 2 = 0b1 % 2 = 1 (HIGH)
+    // 4 - 1 = 2 = 0b11     0b11 / 2 = 0b1 % 2 = 1 (HIGH)
+  }
 }
 
 /*
@@ -90,7 +99,7 @@ void displayFullTime(int hour, int minute) {
   values[3] = minute % 10;
 
   for(int i = 0; i < 4; i++) {
-    updateNumOnDigit(digits[i], digits[last], values[i]);
+    updateNumOnDigit(i, values[i]);
     last = i;
     delay(5);
   }
@@ -102,8 +111,6 @@ void displayFullTime(int hour, int minute) {
 */
 void checkMode() {
   if(!activeMode && digitalRead(MODE) == LOW) {
-    Serial.println("mode changed");
-    Serial.println(mode);
     mode = (Modes)(((int)mode + 1) % (int)NUM_MODES);
     activeMode = true;
     Serial.println(mode);
@@ -129,19 +136,19 @@ void setAlarm(int hour, int minute) {
 }
 
 void setTime(int hour, int minute) {
-  if(!activeHour && digitalRead(HOUR) == LOW) {
+  if(!activeHour && digitalRead(HOURPIN) == LOW) {
     currentCallback((hour + 1) % 24, minute);
     activeHour = true;
   }
-  else if(activeHour && digitalRead(HOUR) == HIGH) {
+  else if(activeHour && digitalRead(HOURPIN) == HIGH) {
     activeHour = false;
   }
 
-  if(!activeMinute && digitalRead(MIN) == LOW) {
+  if(!activeMinute && digitalRead(MINPIN) == LOW) {
     currentCallback(hour, (minute + 1) % 60);
     activeMinute = true;
   }
-  else if(activeMinute && digitalRead(MIN) == HIGH) {
+  else if(activeMinute && digitalRead(MINPIN) == HIGH) {
     activeMinute = false;
   }
 }
@@ -158,25 +165,22 @@ void setup() {
 
   // clock.setDateTime(__DATE__, __TIME__);
 
-
-  pinMode(D1, OUTPUT);
-  pinMode(D2, OUTPUT);
-  pinMode(D3, OUTPUT);
-  pinMode(D4, OUTPUT);
-  pinMode(DATA, OUTPUT);
-  pinMode(LATCH, OUTPUT);
-  pinMode(CLOCK, OUTPUT);
-  pinMode(MIN, INPUT_PULLUP);
-  pinMode(HOUR, INPUT_PULLUP);
-  pinMode(MODE, INPUT_PULLUP);
-  pinMode(ALARM, OUTPUT);
+  pinMode(B1, OUTPUT);
+  pinMode(B2, OUTPUT);
+  pinMode(DATAPIN, OUTPUT);
+  pinMode(LATCHPIN, OUTPUT);
+  pinMode(CLOCKPIN, OUTPUT);
+  pinMode(MINPIN, INPUT_PULLUP);
+  pinMode(HOURPIN, INPUT_PULLUP);
+  pinMode(MODEPIN, INPUT_PULLUP);
+  pinMode(ALARMPIN, OUTPUT);
 
   digitalWrite(D1, LOW);
   digitalWrite(D2, LOW);
   digitalWrite(D3, LOW);
   digitalWrite(D4, LOW);
-  // digitalWrite(ALARM, HIGH);
-  digitalWrite(LATCH, HIGH);
+  digitalWrite(ALARMPIN, HIGH);
+  digitalWrite(LATCHPIN, HIGH);
   
   activeHour = false;
   activeMinute = false;
