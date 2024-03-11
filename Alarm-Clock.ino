@@ -3,17 +3,17 @@
 #include <DS3231.h>
 
 // PINS************
-const int B1 = 12;
-const int B2 = 13;
+const int B1 = 2;
+const int B2 = 3;
 
 const int HOURPIN = 6;
-const int MINPIN = 7;
-const int MODEPIN = 3;
+const int MINPIN = 5;
+const int MODEPIN = 4;
 
-const int DATAPIN = 2;
-const int LATCHPIN = 4;
-const int CLOCKPIN = 5;
-const int ALARMPIN = A0;
+const int DATAPIN = 7;
+const int LATCHPIN = 8;
+const int CLOCKPIN = 9;
+const int ALARMPIN = A1;
 // PINS OVER*******
 
 // OBJECTS*********
