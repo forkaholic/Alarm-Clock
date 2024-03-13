@@ -39,7 +39,7 @@ int numbers[11] = {
   0b10111110, // 6
   0b11100000, // 7
   0b11111110, // 8
-  0b11100110, // 9
+  0b11110110, // 9
   0b00000000 // Empty for leading zero in hour
 };
 // ENUMS DATA OVER*
@@ -59,13 +59,14 @@ timeFunction currentCallback;
 // FUNCTION *******
 
 
-void sevenSegDisplay(int);
-void updateNumOnDigit(int, int);
+void displayDigitSerial(int);
+void displayDigit(int, int);
 void displayFullTime(int, int);
 void checkAlarm();
 void checkMode();
 void setClock(int, int);
 void setAlarm(int, int);
+void getTime();
 void setTime(int, int);
 
 void setup();

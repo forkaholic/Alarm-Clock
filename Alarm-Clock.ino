@@ -4,7 +4,7 @@
   Send out correct binary number using the data, clock,
   and latch.
 */
-void sevenSegDisplay(int num) {
+void displayDigitSerial(int num) {
   digitalWrite(LATCHPIN, LOW);
   shiftOut(DATAPIN, CLOCKPIN, LSBFIRST, numbers[num]);
   digitalWrite(LATCHPIN, HIGH);
@@ -13,10 +13,10 @@ void sevenSegDisplay(int num) {
 /*
   Turn off the previous digit and set up the next digit.
 */
-void updateNumOnDigit(int digit, int num) {
+void displayDigit(int digit, int num) {
   digitalWrite(BD1, LOW);
   digitalWrite(BD2, LOW);
-  sevenSegDisplay(num);
+  displayDigitSerial(num);
   /*
    0 0 D1
    0 1 D2
@@ -44,7 +44,7 @@ void displayFullTime(int hour, int minute) {
   values[3] = minute % 10;
 
   for(int i = 0; i < 4; i++) {
-    updateNumOnDigit(i, values[i]);
+    displayDigit(i, values[i]);
     delay(5);
   }
 }
@@ -53,8 +53,16 @@ void displayFullTime(int hour, int minute) {
   Check to see if alarm is to be turned off by reading mode pin
 */
 void checkAlarm() {
-  if(alarmActive && digitalRead(MODEPIN) == HIGH) {
+
+  // Turn on alarm and force mode to time to display the time, alarm button now turns off alarm
+  if(dt.hour == alarmHour && dt.minute == alarmMinute && dt.second == 0) {
+    analogWrite(ALARMPIN, 255);
+    alarmActive = true;
+    mode = TIME;
+  }
+  else if(alarmActive && digitalRead(MODEPIN) == HIGH) {
     alarmActive = false;
+    analogWrite(ALARMPIN, 0);
   }
 }
 
@@ -91,6 +99,32 @@ void setClock(int hour, int minute) {
 void setAlarm(int hour, int minute) {
   alarmHour = hour;
   alarmMinute = minute;
+}
+
+void getTime(int time[]) {
+  time[0] = 0;
+  time[1] = 0;
+  dt = clock.getDateTime();
+
+  switch(mode) {
+    case ALARM:
+      currentCallback = setAlarm;
+      setTime(alarmHour, alarmMinute);
+      time[0] = alarmHour;
+      time[1] = alarmMinute;
+      break;
+
+    case SET:
+      currentCallback = setClock;
+      setTime(dt.hour, dt.minute);
+    case TIME:
+    default:
+      time[0] = dt.hour;
+      time[1] = dt.minute;
+      break;
+  }
+
+  return time;
 }
 
 void setTime(int hour, int minute) {
@@ -148,39 +182,12 @@ void loop() {
   
   checkMode();
   
-  int hour = 0;
-  int minute = 0;
-  dt = clock.getDateTime();
+  static int time[2] = {0,0};
+  getTime(time);
 
-  switch(mode) {
-    case ALARM:
-      currentCallback = setAlarm;
-      setTime(alarmHour, alarmMinute);
-      hour = alarmHour;
-      minute = alarmMinute;
-      break;
+  displayFullTime(time[0], time[1]);
 
-    case SET:
-      currentCallback = setClock;
-      setTime(dt.hour, dt.minute);
-    case TIME:
-    default:
-      hour = dt.hour;
-      minute = dt.minute;
-      break;
+  // updateNumOnDigit(0,1);
+  
 
-  }
-
-  displayFullTime(hour, minute);
-
-  // Turn on alarm and force mode to time to display the time, alarm button now turns off alarm
-  if(dt.hour == alarmHour && dt.minute == alarmMinute && dt.second == 0) {
-    analogWrite(ALARMPIN, 255);
-    alarmActive = true;
-    mode = TIME;
-  }
-  else {
-    analogWrite(ALARMPIN, 0);
-    alarmActive = false;
-  }
 }
