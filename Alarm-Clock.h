@@ -54,8 +54,6 @@ bool activeMinute;
 bool activeMode;
 bool alarmActive;
 Modes mode;
-int alarmHour;
-int alarmMinute;
 typedef void (*timeFunction)(int,int);
 timeFunction currentCallback;
 // VARIABLES OVER**

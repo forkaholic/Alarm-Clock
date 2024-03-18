@@ -55,7 +55,7 @@ void displayFullTime(int hour, int minute) {
 void checkAlarm() {
 
   // Turn on alarm and force mode to time to display the time, alarm button now turns off alarm
-  if(dt.hour == alarmHour && dt.minute == alarmMinute && dt.second == 0) {
+  if(dt.hour == at.hour && dt.minute == at.minute && dt.second == 0) {
     analogWrite(ALARMPIN, 255);
     alarmActive = true;
     mode = ALARMING;
@@ -175,7 +175,6 @@ void setTime(int hour, int minute) {
   clock communcation, and variables.
 */
 void setup() {
-
   Serial.begin(9600);
   clock.begin();
 
@@ -197,9 +196,6 @@ void setup() {
   activeMinute = false;
   alarmActive = false;
   mode = TIME;
-  at = clock.getAlarm1();
-  alarmHour = at.hour;
-  alarmMinute = at.minute;
 }
 
 
