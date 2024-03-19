@@ -55,14 +55,20 @@ void displayFullTime(int hour, int minute) {
 void checkAlarm() {
 
   // Turn on alarm and force mode to time to display the time, alarm button now turns off alarm
+  // if(clock.isAlarm1(false)) {
+
   if(dt.hour == at.hour && dt.minute == at.minute && dt.second == 0) {
     analogWrite(ALARMPIN, 255);
     alarmActive = true;
     mode = ALARMING;
   }
+  // else if(clock.isAlarm1(false) && digitalRead(MODEPIN) == HIGH) {
   else if(alarmActive && digitalRead(MODEPIN) == HIGH) {
     alarmActive = false;
+    // clock.clearAlarm1();
+    // clock.armAlarm1();
     analogWrite(ALARMPIN, 0);
+    mode = TIME;
   }
 }
 
@@ -70,8 +76,8 @@ void checkAlarm() {
   Set LEDs to correct form when a new mode occurs or when alarm signals
 */
 void setLED() {
+  Serial.println(mode);
   switch(mode) {
-    Serial.println(mode);
     case TIME:
       digitalWrite(LED1, LOW);
       digitalWrite(LED2, LOW);
@@ -83,9 +89,11 @@ void setLED() {
     case SETALARM:
       digitalWrite(LED1, HIGH);
       digitalWrite(LED2, HIGH);
+      break;
     case ALARMING:
       digitalWrite(LED1, LOW);
       digitalWrite(LED2, HIGH);
+      break;
   }
 }
 
@@ -95,6 +103,7 @@ void setLED() {
 */
 void checkMode() {
   checkAlarm();
+  // if(clock.isAlarm1(false)) {
   if(alarmActive) {
     return;
   }
