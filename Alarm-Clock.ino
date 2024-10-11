@@ -55,31 +55,63 @@ void displayFullTime(int hour, int minute) {
 void checkAlarm() {
 
   // Turn on alarm and force mode to time to display the time, alarm button now turns off alarm
-  if(dt.hour == alarmHour && dt.minute == alarmMinute && dt.second == 0) {
+  // if(clock.isAlarm1(false)) {
+
+  if(dt.hour == at.hour && dt.minute == at.minute && dt.second == 0) {
     analogWrite(ALARMPIN, 255);
     alarmActive = true;
-    mode = TIME;
+    mode = ALARMING;
   }
+  // else if(clock.isAlarm1(false) && digitalRead(MODEPIN) == HIGH) {
   else if(alarmActive && digitalRead(MODEPIN) == HIGH) {
     alarmActive = false;
+    // clock.clearAlarm1();
+    // clock.armAlarm1();
     analogWrite(ALARMPIN, 0);
+    mode = TIME;
+  }
+}
+
+/*
+  Set LEDs to correct form when a new mode occurs or when alarm signals
+*/
+void setLED() {
+  Serial.println(mode);
+  switch(mode) {
+    case TIME:
+      digitalWrite(LED1, LOW);
+      digitalWrite(LED2, LOW);
+      break;
+    case SET:
+      digitalWrite(LED1, HIGH);
+      digitalWrite(LED2, LOW);
+      break;
+    case SETALARM:
+      digitalWrite(LED1, HIGH);
+      digitalWrite(LED2, HIGH);
+      break;
+    case ALARMING:
+      digitalWrite(LED1, LOW);
+      digitalWrite(LED2, HIGH);
+      break;
   }
 }
 
 /*
   Check to see if mode button has been pressed,
-  if so update accordingly.
+  if so update accordingly and perform mode actions.
 */
 void checkMode() {
   checkAlarm();
+  // if(clock.isAlarm1(false)) {
   if(alarmActive) {
     return;
   }
   
   if(!activeMode && digitalRead(MODEPIN) == LOW) {
-    mode = (Modes)(((int)mode + 1) % (int)NUM_MODES);
+    // Skips last 2 modes since they are not used in this context
+    mode = (Modes)(((int)mode + 1) % ((int)NUM_MODES - 1));
     activeMode = true;
-    Serial.println(mode);
   }
   else if(activeMode && digitalRead(MODEPIN) == HIGH) {
     activeMode = false;
@@ -97,36 +129,37 @@ void setClock(int hour, int minute) {
   Set the alarm time to the requested time
 */
 void setAlarm(int hour, int minute) {
-  alarmHour = hour;
-  alarmMinute = minute;
+  clock.setAlarm1(0, hour, minute, 0, DS3231_MATCH_H_M_S, false);
 }
 
 void getTime(int time[]) {
   time[0] = 0;
   time[1] = 0;
-  dt = clock.getDateTime();
 
   switch(mode) {
-    case ALARM:
+    case SETALARM:
       currentCallback = setAlarm;
-      setTime(alarmHour, alarmMinute);
-      time[0] = alarmHour;
-      time[1] = alarmMinute;
+      setTime(at.hour, at.minute);
+      time[0] = at.hour;
+      time[1] = at.minute;
       break;
 
     case SET:
       currentCallback = setClock;
       setTime(dt.hour, dt.minute);
     case TIME:
+    case ALARMING:
     default:
       time[0] = dt.hour;
       time[1] = dt.minute;
       break;
   }
-
-  return time;
 }
 
+/*
+  Perform correct callback function to set the time for either 
+  the RTCAlarmTime or the RTCDateTime  
+*/
 void setTime(int hour, int minute) {
   if(!activeHour && digitalRead(HOURPIN) == LOW) {
     currentCallback((hour + 1) % 24, minute);
@@ -151,7 +184,6 @@ void setTime(int hour, int minute) {
   clock communcation, and variables.
 */
 void setup() {
-
   Serial.begin(9600);
   clock.begin();
 
@@ -159,6 +191,8 @@ void setup() {
 
   pinMode(BD1, OUTPUT);
   pinMode(BD2, OUTPUT);
+  pinMode(LED1, OUTPUT);
+  pinMode(LED2, OUTPUT);
   pinMode(DATAPIN, OUTPUT);
   pinMode(LATCHPIN, OUTPUT);
   pinMode(CLOCKPIN, OUTPUT);
@@ -166,28 +200,22 @@ void setup() {
   pinMode(HOURPIN, INPUT_PULLUP);
   pinMode(MODEPIN, INPUT_PULLUP);
   pinMode(ALARMPIN, OUTPUT);
-
-  digitalWrite(ALARMPIN, HIGH);
-  digitalWrite(LATCHPIN, HIGH);
-  
+ 
   activeHour = false;
   activeMinute = false;
+  alarmActive = false;
   mode = TIME;
-  alarmHour = 0;
-  alarmMinute = 0;
 }
 
 
 void loop() {
-  
+  dt = clock.getDateTime();
+  at = clock.getAlarm1();
   checkMode();
+  setLED();
   
   static int time[2] = {0,0};
   getTime(time);
 
   displayFullTime(time[0], time[1]);
-
-  // updateNumOnDigit(0,1);
-  
-
 }

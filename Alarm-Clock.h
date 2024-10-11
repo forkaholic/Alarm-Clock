@@ -5,6 +5,8 @@
 // PINS************
 const int BD1 = 2;
 const int BD2 = 3;
+const int LED1 = 10;
+const int LED2 = 11;
 
 const int HOURPIN = 6;
 const int MINPIN = 5;
@@ -19,13 +21,15 @@ const int ALARMPIN = A1;
 // OBJECTS*********
 DS3231 clock;
 RTCDateTime dt;
+RTCAlarmTime at;
 // OBJECTS OVER****
 
 // ENUMS & DATA****
 enum Modes {
   TIME,
   SET,
-  ALARM,
+  SETALARM,
+  ALARMING,
   NUM_MODES
 };
 int values[4] = {0, 0, 0, 0};
@@ -50,8 +54,6 @@ bool activeMinute;
 bool activeMode;
 bool alarmActive;
 Modes mode;
-int alarmHour;
-int alarmMinute;
 typedef void (*timeFunction)(int,int);
 timeFunction currentCallback;
 // VARIABLES OVER**
@@ -68,7 +70,7 @@ void setClock(int, int);
 void setAlarm(int, int);
 void getTime();
 void setTime(int, int);
-
+void setLED(Modes);
 void setup();
 void loop();
 
